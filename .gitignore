@@ -1,4 +1,7 @@
 .idea/
+.venv_gpu/
+__pycache__/
+*.py[cod]
 
 Controller/devel/
 Controller/build/
@@ -6,6 +9,7 @@ Controller/.catkin_workspace
 
 Simulator/devel/
 Simulator/build/
+Simulator/.catkin_workspace
 Simulator/logs/
 Simulator/.catkin_tools/
 

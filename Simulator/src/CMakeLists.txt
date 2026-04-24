@@ -21,17 +21,30 @@ message(WARNING "OpenCV_VERSION: ${OpenCV_VERSION}")
 
 # CUDA
 find_package(CUDA REQUIRED)
-# Query the GPU architecture
-cuda_select_nvcc_arch_flags(ARCH_FLAGS)
-if("${ARCH_FLAGS}" STREQUAL "")
-  message(FATAL_ERROR
-    "Failed to automatically detect CUDA architecture. "
-    "Please manually set ARCH_FLAGS in CMakeList.txt (line 25) based on your device, for example:\n"
-    "  set(ARCH_FLAGS \"-gencode arch=compute_86,code=sm_86\")"
-  )
+# Query the GPU architecture. CMake 3.16 does not know newer architectures
+# such as Ada/Blackwell, so prefer nvidia-smi when it is available.
+execute_process(
+  COMMAND nvidia-smi --query-gpu=compute_cap --format=csv,noheader
+  OUTPUT_VARIABLE DETECTED_CUDA_COMPUTE_CAP
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  ERROR_QUIET
+)
+string(REGEX MATCH "[0-9]+\\.[0-9]+" DETECTED_CUDA_COMPUTE_CAP "${DETECTED_CUDA_COMPUTE_CAP}")
+if(DETECTED_CUDA_COMPUTE_CAP)
+  string(REPLACE "." "" DETECTED_CUDA_ARCH "${DETECTED_CUDA_COMPUTE_CAP}")
+  set(ARCH_FLAGS "-gencode arch=compute_${DETECTED_CUDA_ARCH},code=sm_${DETECTED_CUDA_ARCH}")
+else()
+  cuda_select_nvcc_arch_flags(ARCH_FLAGS)
+  if("${ARCH_FLAGS}" STREQUAL "")
+    message(FATAL_ERROR
+      "Failed to automatically detect CUDA architecture. "
+      "Please manually set ARCH_FLAGS in CMakeList.txt based on your device, for example:\n"
+      "  set(ARCH_FLAGS \"-gencode arch=compute_86,code=sm_86\")"
+    )
+  endif()
 endif()
-# If automatic detection fails, you can delete above (cuda_select_nvcc_arch_flags(ARCH_FLAGS) ... endif()) and manually set the architecture flags here
-# Examples (NVIDIA 5060 GPU):
+# If automatic detection fails, you can manually set the architecture flags here.
+# Example (NVIDIA 50-series GPU):
 # set(ARCH_FLAGS "-gencode arch=compute_120,code=sm_120")
 message(WARNING "CUDA Architecture: ${ARCH_FLAGS}")
 set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} ${ARCH_FLAGS}")

@@ -77,7 +77,7 @@ class YopoNet:
             self.policy = TRTModule()
             self.policy.load_state_dict(torch.load(weight))
         else:
-            state_dict = torch.load(weight, weights_only=True)
+            state_dict = torch.load(weight, map_location=self.device, weights_only=True)
             self.policy = YopoNetwork()
             self.policy.load_state_dict(state_dict)
             self.policy = self.policy.to(self.device)
